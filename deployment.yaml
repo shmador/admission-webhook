@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dor-admission-webhook
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dor-admission-webhook
+  template:
+    metadata:
+      labels:
+        app: dor-admission-webhook
+    spec:
+      containers:
+      - name: webhook
+        image: 314525640319.dkr.ecr.il-central-1.amazonaws.com/dor/webhook:latest
+        args:
+        - "-tlsCertFile=/certs/tls.crt"
+        - "-tlsKeyFile=/certs/tls.key"
+        ports:
+        - containerPort: 8443
+        volumeMounts:
+        - name: certs
+          mountPath: /certs
+          readOnly: true
+      volumes:
+      - name: certs
+        secret:
+          secretName: dor-webhook-certs
+
+

@@ -1,0 +1,23 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: dor-prevent-lb-service-webhook
+webhooks:
+- name: dor.prevent-lb.default.svc
+  clientConfig:
+    service:
+      name: dor-admission-webhook-svc
+      namespace: default
+      path: /validate
+    caBundle: ${CA_BUNDLE}
+  rules:
+  - apiGroups: [""]
+    apiVersions: ["v1"]
+    operations: ["CREATE", "UPDATE"]
+    resources: ["services"]
+  namespaceSelector:
+    matchNames:
+    - target-namespace
+  failurePolicy: Fail
+  sideEffects: None
+  admissionReviewVersions: ["v1"]

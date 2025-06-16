@@ -1,16 +1,23 @@
-# Dockerfile for dor-admission-webhook
-FROM golang:1.21-alpine AS builder
+# 1) Build stage: compile static binary
+FROM golang:1.24 AS builder
 WORKDIR /app
 
+# copy go.mod/go.sum first to cache deps
 COPY go.mod go.sum ./
 RUN go mod download
 
+# copy the rest of your code
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -o webhook .
 
-FROM alpine:latest
-RUN apk add --no-cache ca-certificates
-WORKDIR /root/
-COPY --from=builder /app/webhook .
-ENTRYPOINT ["./webhook", "-tlsCertFile=/certs/tls.crt", "-tlsKeyFile=/certs/tls.key"]
+# disable CGO so no libc is linked, and strip symbols
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o webhook
+
+# 2) Final stage: scratch (empty) image
+FROM scratch
+# expose port for webhook server
+EXPOSE 8443
+# copy the static binary
+COPY --from=builder /app/webhook /webhook
+
+ENTRYPOINT ["/webhook"]
 
